@@ -78,21 +78,22 @@ internal class Program
             .ToList();
     }
 
-    static async Task<bool> CheckIfFileExists(HttpClient client, string repo)
+    private static async Task<bool> CheckIfFileExists(HttpClient client, string repo)
     {
         // Get the contents of the repository
-        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/items?path={Uri.EscapeDataString(TemplateFilePath)}&api-version=6.0";
+        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/items?path={Uri.EscapeDataString(TemplateFilePath)}&versionDescriptor.versionType=branch&versionDescriptor.version={SourceBranch}&api-version=6.0";
         var response = await client.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        _ = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
         {
+            Console.WriteLine($"{repo}: Template already exists.");
             return true;
         }
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
+            Console.WriteLine($"{repo}: Template not exists, creating new one.");
             return false;
         }
 
@@ -108,7 +109,7 @@ internal class Program
                                        """;
 
         await File.WriteAllTextAsync(FileName, templateContent);
-        Console.WriteLine($"{repo}: Pull request template generated for repository.");
+        Console.WriteLine($"{repo}: MD template created.");
     }
 
     private static async Task<string> CreateBranch(HttpClient client, string repo)
@@ -136,7 +137,6 @@ internal class Program
         var branchContent = new StringContent(JsonSerializer.Serialize(branchData), Encoding.UTF8, "application/json");
         var branchResponse = await client.PostAsync(url, branchContent);
         branchResponse.EnsureSuccessStatusCode();
-        _ = await branchResponse.Content.ReadAsStringAsync();
 
         Console.WriteLine($"{repo}: Branch '{SourceBranch}' created.");
 
@@ -185,7 +185,6 @@ internal class Program
         var content = new StringContent(JsonSerializer.Serialize(commitData), Encoding.UTF8, "application/json");
         var commitResponse = await client.PostAsync(url, content);
         commitResponse.EnsureSuccessStatusCode();
-        _ = await commitResponse.Content.ReadAsStringAsync();
 
         Console.WriteLine($"{repo}: Commit with new template is pushed.");
     }
@@ -206,7 +205,10 @@ internal class Program
         var response = await client.PostAsync(url, content);
 
         response.EnsureSuccessStatusCode();
-        Console.WriteLine($"{repo}: Pull request with changes is created.");
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var pullRequest = JsonSerializer.Deserialize<PullRequestResponse>(responseBody)?.Id ?? throw new JsonException("Failed to get pull request ID.");
+
+        Console.WriteLine($"{repo}: Pull request with changes is created. URL: {OrgUrl}/_git/{repo}/pullrequest/{pullRequest}");
     }
 }
 
@@ -229,4 +231,9 @@ internal record RepositoryResponse(List<RepositoryResponse.Repository> Root)
     {
         [JsonPropertyName("name")] public string Name { get; set; } = Name;
     }
+}
+
+internal record PullRequestResponse(int Id)
+{
+    [JsonPropertyName("pullRequestId")] public int Id { get; set; } = Id;
 }
