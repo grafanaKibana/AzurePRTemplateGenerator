@@ -15,6 +15,7 @@ internal class Program
     private const string Token = "{YOUR_AZURE_DEVOPS_PERSONAL_ACCESS_TOKEN}";
     private const string Organization = "{ORGANIZATION_NAME}";
     private const string Project = "{PROJECT_NAME}";
+    private const string ApiVersion = "7.0";
     private const string OrgUrl = $"https://dev.azure.com/{Organization}/{Project}";
 
     private static readonly List<string> RepositoriesToExclude =
