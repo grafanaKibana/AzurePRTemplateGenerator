@@ -64,7 +64,7 @@ internal class Program
 
     private static async Task<List<string>> GetRepositories(HttpClient client)
     {
-        const string url = $"{OrgUrl}/_apis/git/repositories?api-version=6.0";
+        const string url = $"{OrgUrl}/_apis/git/repositories?api-version={ApiVersion}";
         var response = await client.GetAsync(url);
 
         response.EnsureSuccessStatusCode();
@@ -81,7 +81,7 @@ internal class Program
     private static async Task<bool> CheckIfFileExists(HttpClient client, string repo)
     {
         // Get the contents of the repository
-        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/items?path={Uri.EscapeDataString(TemplateFilePath)}&versionDescriptor.versionType=branch&versionDescriptor.version={SourceBranch}&api-version=6.0";
+        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/items?path={Uri.EscapeDataString(TemplateFilePath)}&versionDescriptor.versionType=branch&versionDescriptor.version={SourceBranch}&api-version={ApiVersion}";
         var response = await client.GetAsync(url);
         var responseBody = await response.Content.ReadAsStringAsync();
 
@@ -115,7 +115,7 @@ internal class Program
     private static async Task<string> CreateBranch(HttpClient client, string repo)
     {
         // Get the latest commit ID of the base branch
-        var baseBranchUrl = $"{OrgUrl}/_apis/git/repositories/{repo}/refs?filter=heads/dev&api-version=6.0";
+        var baseBranchUrl = $"{OrgUrl}/_apis/git/repositories/{repo}/refs?filter=heads/{TargetBranch}&api-version={ApiVersion}";
         var baseBranchResponse = await client.GetAsync(baseBranchUrl);
         baseBranchResponse.EnsureSuccessStatusCode();
         var baseBranchResponseBody = await baseBranchResponse.Content.ReadAsStringAsync();
@@ -123,7 +123,7 @@ internal class Program
         var latestCommitId = baseBranchInfo[0].Id; // The latest commit ID of the base branch
 
         // Create the new branch from the latest commit of the base branch
-        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/refs?api-version=6.0";
+        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/refs?api-version={ApiVersion}";
         var branchData = new List<object>
         {
             new
@@ -145,7 +145,7 @@ internal class Program
 
     private static async Task CreateCommitAndPushChanges(HttpClient client, string repo, string latestCommitId)
     {
-        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/pushes?api-version=6.0";
+        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/pushes?api-version={ApiVersion}";
         var commitData = new
         {
             refUpdates = new List<object>
@@ -192,7 +192,7 @@ internal class Program
     private static async Task CreatePullRequest(HttpClient client, string repo)
     {
 
-        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/pullrequests?api-version=6.0";
+        var url = $"{OrgUrl}/_apis/git/repositories/{repo}/pullrequests?api-version={ApiVersion}";
         var pullRequestData = new
         {
             sourceRefName = $"refs/heads/{SourceBranch}",
